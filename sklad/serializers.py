@@ -1,22 +1,26 @@
 from rest_framework import serializers
 from .models import Material, Warehouse, Product, ProductMaterial
 
-class MaterialSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Material
-        fields = ['id', 'name']
+class WarehouseSerializer(serializers.ModelSerializer):
+    material_name = serializers.SerializerMethodField()
 
-class WarehouSeerializer(serializers.ModelSerializer):
     class Meta:
         model = Warehouse
-        fields = ['id', 'material_id', 'remainder', 'price']
+        fields = ['id', 'material_name', 'remainder']
 
-class ProductSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Product
-        fields = ['id', 'code']
+    def get_material_name(self, obj):
+        return obj.material.name if obj.material else None
 
 class ProductMaterialSerializer(serializers.ModelSerializer):
+    product_name = serializers.SerializerMethodField()
+    code = serializers.SerializerMethodField()
+
     class Meta:
         model = ProductMaterial
-        fields = ['id', 'product_id', 'material_id', 'qty']
+        fields = ['id', 'product_name', 'code', 'qty']
+
+    def get_product_name(self, obj):
+        return obj.product.name if obj.product else None
+
+    def get_product_code(self, obj):
+        return obj.product.code if obj.product else None
