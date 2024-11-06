@@ -1,11 +1,9 @@
-# Assalawma aleykum mende tek bir dictionary bolip shiqti har bir partiya ushin bolek shigatugin etip isley almadim
 from django.db.models import Sum
-from rest_framework import status, generics
+from rest_framework import status
 from rest_framework.views import APIView
 from rest_framework.response import Response
 
-from sklad.models import Warehouse, Material, Product, ProductMaterial
-
+from sklad.models import Warehouse, Material
 
 class ProductView(APIView):
 
@@ -50,24 +48,38 @@ class ProductView(APIView):
         if not material_mato or not material_tugma or not material_ip:
             return {'status': False, 'message': "Material does not exist."}
 
-        remainder_mato = \
-        Warehouse.objects.filter(material_id=material_mato).aggregate(total_remainder=Sum('remainder'))[
-            'total_remainder']
-        remainder_tugma = \
-        Warehouse.objects.filter(material_id=material_tugma).aggregate(total_remainder=Sum('remainder'))[
-            'total_remainder']
-        remainder_ip = Warehouse.objects.filter(material_id=material_ip).aggregate(total_remainder=Sum('remainder'))[
-            'total_remainder']
+        remainder_mato = Warehouse.objects.filter(material_id=material_mato).aggregate(total_remainder=Sum('remainder'))['total_remainder']
+        remainder_tugma = Warehouse.objects.filter(material_id=material_tugma).aggregate(total_remainder=Sum('remainder'))['total_remainder']
+        remainder_ip = Warehouse.objects.filter(material_id=material_ip).aggregate(total_remainder=Sum('remainder'))['total_remainder']
 
         if (remainder_mato is None or remainder_mato < jami_koylek_mato) or \
                 (remainder_tugma is None or remainder_tugma < jami_koylek_tugma) or \
                 (remainder_ip is None or remainder_ip < jami_koylek_ip):
             return {'status': False, 'message': "Not enough materials available."}
 
-        materials = {
-            'Mato': jami_koylek_mato,
-            'Tugma': jami_koylek_tugma,
-            'Ip': jami_koylek_ip
-        }
+
+        warehouses_mato = Warehouse.objects.filter(material_id=material_mato).values('id', 'remainder')
+        warehouses_tugma = Warehouse.objects.filter(material_id=material_tugma).values('id', 'remainder')
+        warehouses_ip = Warehouse.objects.filter(material_id=material_ip).values('id', 'remainder')
+
+        materials = {"product name": 'Koylak'}
+
+        if remainder_mato >= jami_koylek_mato:
+            materials['Mato'] = {
+                'required_qty': jami_koylek_mato,
+                'warehouses': list(warehouses_mato)
+            }
+
+        if remainder_tugma >= jami_koylek_tugma:
+            materials['Tugma'] = {
+                'required_qty': jami_koylek_tugma,
+                'warehouses': list(warehouses_tugma)
+            }
+
+        if remainder_ip >= jami_koylek_ip:
+            materials['Ip'] = {
+                'required_qty': jami_koylek_ip,
+                'warehouses': list(warehouses_ip)
+            }
 
         return {'status': True, 'materials': materials}
